@@ -1,3 +1,7 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import { prisma } from "@/app/lib/prisma";
 import AppShell from "@/app/components/AppShell";
@@ -87,6 +91,7 @@ function StatusPill({ text }: { text: string }) {
 }
 
 export default async function DashboardPage() {
+  noStore();
   const user = await prisma.user.findFirst({
     include: {
       profile: true,

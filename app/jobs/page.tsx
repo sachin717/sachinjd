@@ -1,3 +1,7 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+import { unstable_noStore as noStore } from "next/cache";
 import AppShell from "@/app/components/AppShell";
 import { prisma } from "../lib/prisma";
 
@@ -21,6 +25,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default async function JobsPage() {
+  noStore();
   const user = await prisma.user.findFirst({
     include: {
       jobs: {
