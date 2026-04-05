@@ -11,13 +11,13 @@ export async function POST(req: Request) {
     const introNote = String(formData.get("introNote") || "").trim();
 
     if (!jobId) {
-      return NextResponse.redirect(new URL("/applications", req.url));
+      return NextResponse.redirect(new URL("/applications", req.url), 303);
     }
 
     const user = await prisma.user.findFirst();
 
     if (!user) {
-      return NextResponse.redirect(new URL("/applications", req.url));
+      return NextResponse.redirect(new URL("/applications", req.url), 303);
     }
 
     await prisma.application.create({
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.redirect(new URL("/applications", req.url));
+    return NextResponse.redirect(new URL("/applications", req.url), 303);
   } catch (error) {
     console.error("Error creating application:", error);
     return NextResponse.json(

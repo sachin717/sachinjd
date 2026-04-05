@@ -18,13 +18,13 @@ export async function POST(req: Request) {
     const priorityScore = Number(priorityScoreRaw) || 0;
 
     if (!name || !company) {
-      return NextResponse.redirect(new URL("/leads", req.url));
+      return NextResponse.redirect(new URL("/leads", req.url), 303);
     }
 
     const user = await prisma.user.findFirst();
 
     if (!user) {
-      return NextResponse.redirect(new URL("/leads", req.url));
+      return NextResponse.redirect(new URL("/leads", req.url), 303);
     }
 
     await prisma.outreachLead.create({
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.redirect(new URL("/leads", req.url));
+    return NextResponse.redirect(new URL("/leads", req.url), 303);
   } catch (error) {
     console.error("Error creating lead:", error);
     return NextResponse.json(

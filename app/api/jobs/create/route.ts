@@ -17,13 +17,13 @@ export async function POST(req: Request) {
     const matchScore = Number(matchScoreRaw) || 0;
 
     if (!title || !company) {
-      return NextResponse.redirect(new URL("/jobs", req.url));
+      return NextResponse.redirect(new URL("/jobs", req.url), 303);
     }
 
     const user = await prisma.user.findFirst();
 
     if (!user) {
-      return NextResponse.redirect(new URL("/jobs", req.url));
+      return NextResponse.redirect(new URL("/jobs", req.url), 303);
     }
 
     await prisma.job.create({
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.redirect(new URL("/jobs", req.url));
+    return NextResponse.redirect(new URL("/jobs", req.url), 303);
   } catch (error) {
     console.error("Error creating job:", error);
     return NextResponse.json(

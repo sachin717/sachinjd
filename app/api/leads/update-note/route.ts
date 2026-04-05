@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     const generatedNote = String(formData.get("generatedNote") || "");
 
     if (!leadId) {
-      return NextResponse.redirect(new URL("/leads", req.url));
+      return NextResponse.redirect(new URL("/leads", req.url), 303);
     }
 
     await prisma.outreachLead.update({
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.redirect(new URL("/leads", req.url));
+    return NextResponse.redirect(new URL("/leads", req.url), 303);
   } catch (error) {
     console.error("Error updating note:", error);
     return NextResponse.json(

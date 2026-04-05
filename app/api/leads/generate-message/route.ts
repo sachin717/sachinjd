@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const leadId = String(formData.get("leadId") || "").trim();
 
     if (!leadId) {
-      return NextResponse.redirect(new URL("/leads", req.url));
+      return NextResponse.redirect(new URL("/leads", req.url), 303);
     }
 
     const user = await prisma.user.findFirst({
@@ -19,14 +19,14 @@ export async function POST(req: Request) {
     });
 
     if (!user || !user.profile) {
-      return NextResponse.redirect(new URL("/leads", req.url));
+      return NextResponse.redirect(new URL("/leads", req.url), 303);
     }
 
     const preferredRole =
       user.roleProfiles.find((role:any) => role.preferred) || user.roleProfiles[0];
 
     if (!preferredRole) {
-      return NextResponse.redirect(new URL("/leads", req.url));
+      return NextResponse.redirect(new URL("/leads", req.url), 303);
     }
 
     const lead = await prisma.outreachLead.findUnique({
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     });
 
     if (!lead) {
-      return NextResponse.redirect(new URL("/leads", req.url));
+      return NextResponse.redirect(new URL("/leads", req.url), 303);
     }
 
     const generatedNote = await generateLeadMessage({
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.redirect(new URL("/leads", req.url));
+    return NextResponse.redirect(new URL("/leads", req.url), 303);
   } catch (error) {
     console.error("Error generating lead message:", error);
     return NextResponse.json(

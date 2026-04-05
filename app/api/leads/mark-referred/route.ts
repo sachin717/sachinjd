@@ -7,7 +7,7 @@ export async function POST(req: Request) {
     const leadId = String(formData.get("leadId") || "").trim();
 
     if (!leadId) {
-      return NextResponse.redirect(new URL("/leads", req.url));
+      return NextResponse.redirect(new URL("/leads", req.url), 303);
     }
 
     await prisma.outreachLead.update({
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.redirect(new URL("/leads", req.url));
+    return NextResponse.redirect(new URL("/leads", req.url), 303);
   } catch (error) {
     console.error("Error marking referred:", error);
     return NextResponse.json({ error: "Failed" }, { status: 500 });
