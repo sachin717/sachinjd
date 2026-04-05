@@ -179,6 +179,7 @@ model OutreachLead {
   followUp1     String?
   followUp2     String?
   notes         String?
+  email String?
   lastContacted DateTime?
   nextFollowUp  DateTime?
   createdAt     DateTime  @default(now())
