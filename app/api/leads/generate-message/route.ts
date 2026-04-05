@@ -8,11 +8,9 @@ export async function POST(req: Request) {
     const leadId = String(formData.get("leadId") || "").trim();
 
     if (!leadId) {
-      return new Response(null, {
-  status: 303,
-  headers: {
-    Location: "/leads",
-  },
+         return NextResponse.json({
+  success: false,
+  leadId,
 });
     }
 
@@ -24,11 +22,9 @@ export async function POST(req: Request) {
     });
 
     if (!user || !user.profile) {
-      return new Response(null, {
-  status: 303,
-  headers: {
-    Location: "/leads",
-  },
+         return NextResponse.json({
+  success: false,
+  user,
 });
     }
 
@@ -36,11 +32,9 @@ export async function POST(req: Request) {
       user.roleProfiles.find((role:any) => role.preferred) || user.roleProfiles[0];
 
     if (!preferredRole) {
-      return new Response(null, {
-  status: 303,
-  headers: {
-    Location: "/leads",
-  },
+         return NextResponse.json({
+  success: false,
+  preferredRole,
 });
     }
 
@@ -49,11 +43,9 @@ export async function POST(req: Request) {
     });
 
     if (!lead) {
-      return new Response(null, {
-  status: 303,
-  headers: {
-    Location: "/leads",
-  },
+         return NextResponse.json({
+  success: false,
+  lead,
 });
     }
 
@@ -77,17 +69,15 @@ export async function POST(req: Request) {
       },
     });
 
-    return new Response(null, {
-  status: 303,
-  headers: {
-    Location: "/leads",
-  },
+return NextResponse.json({
+  success: true,
+  generatedNote,
 });
   } catch (error) {
     console.error("Error generating lead message:", error);
-    return NextResponse.json(
-      { error: "Failed to generate lead message" },
-      { status: 500 }
-    );
+   return NextResponse.json({
+  success: false,
+  error,
+});
   }
 }

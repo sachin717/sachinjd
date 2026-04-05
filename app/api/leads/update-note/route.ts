@@ -9,12 +9,10 @@ export async function POST(req: Request) {
     const generatedNote = String(formData.get("generatedNote") || "");
 
     if (!leadId) {
-      return new Response(null, {
-  status: 303,
-  headers: {
-    Location: "/leads",
-  },
+return NextResponse.json({
+  success: false,
 });
+
     }
 
     await prisma.outreachLead.update({
@@ -24,17 +22,13 @@ export async function POST(req: Request) {
       },
     });
 
-    return new Response(null, {
-  status: 303,
-  headers: {
-    Location: "/leads",
-  },
+return NextResponse.json({
+  success: true,
 });
   } catch (error) {
     console.error("Error updating note:", error);
-    return NextResponse.json(
-      { error: "Failed to update note" },
-      { status: 500 }
-    );
+    return NextResponse.json({
+  success: false,
+});
   }
 }

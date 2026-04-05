@@ -6,6 +6,19 @@ import React from "react";
 import AppShell from "@/app/components/AppShell";
 import { prisma } from "@/app/lib/prisma";
 import CopyButton from "@/app/components/CopyButton";
+import LeadComposer from "./LeadsComposer";
+
+const statusOrder = [
+  "new",
+  "shortlisted",
+  "invite_sent",
+  "connected",
+  "messaged",
+  "replied",
+  "referred",
+  "closed",
+];
+
 function StatusBadge({ status }: { status: string }) {
   return (
     <span
@@ -15,8 +28,9 @@ function StatusBadge({ status }: { status: string }) {
         background: "#1f2937",
         color: "#e5e7eb",
         fontSize: 12,
-        fontWeight: 600,
+        fontWeight: 700,
         textTransform: "capitalize",
+        whiteSpace: "nowrap",
       }}
     >
       {status.replaceAll("_", " ")}
@@ -24,8 +38,102 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function SummaryCard({
+  title,
+  value,
+  subtitle,
+}: {
+  title: string;
+  value: number;
+  subtitle?: string;
+}) {
+  return (
+    <div
+      style={{
+        background: "#111827",
+        border: "1px solid #1f2937",
+        borderRadius: 18,
+        padding: 18,
+      }}
+    >
+      <div style={{ color: "#94a3b8", fontSize: 13, marginBottom: 8 }}>
+        {title}
+      </div>
+      <div style={{ fontSize: 30, fontWeight: 800, lineHeight: 1 }}>{value}</div>
+      {subtitle ? (
+        <div style={{ color: "#64748b", fontSize: 12, marginTop: 8 }}>{subtitle}</div>
+      ) : null}
+    </div>
+  );
+}
+
+function SectionTitle({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 22, fontWeight: 800 }}>{title}</div>
+      {subtitle ? (
+        <div style={{ color: "#94a3b8", marginTop: 6, fontSize: 14 }}>{subtitle}</div>
+      ) : null}
+    </div>
+  );
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        color: "#94a3b8",
+        fontSize: 12,
+        fontWeight: 700,
+        marginBottom: 8,
+        textTransform: "uppercase",
+        letterSpacing: 0.4,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function MetaPill({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        background: "#0f172a",
+        border: "1px solid #1f2937",
+        borderRadius: 12,
+        padding: "10px 12px",
+        minWidth: 0,
+      }}
+    >
+      <div style={{ color: "#64748b", fontSize: 11, fontWeight: 700, marginBottom: 4 }}>
+        {label}
+      </div>
+      <div
+        style={{
+          color: "#e5e7eb",
+          fontSize: 14,
+          fontWeight: 600,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+        }}
+      >
+        {value || "-"}
+      </div>
+    </div>
+  );
+}
+
 export default async function LeadsPage() {
-  noStore()
+  noStore();
+
   const user = await prisma.user.findFirst({
     include: {
       outreachLeads: {
@@ -38,10 +146,30 @@ export default async function LeadsPage() {
 
   const leads = user?.outreachLeads ?? [];
 
+  const statusRank = new Map(statusOrder.map((status, index) => [status, index]));
+
+  const sortedLeads = [...leads].sort((a: any, b: any) => {
+    const aRank = statusRank.get(a.status) ?? 999;
+    const bRank = statusRank.get(b.status) ?? 999;
+
+    if (aRank !== bRank) return aRank - bRank;
+
+    const aPriority = a.priorityScore ?? 0;
+    const bPriority = b.priorityScore ?? 0;
+    if (aPriority !== bPriority) return bPriority - aPriority;
+
+    return (
+      new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
+  });
+
+  const countByStatus = (status: string) =>
+    leads.filter((lead: any) => lead.status === status).length;
+
   return (
     <AppShell
       title="Referral Leads"
-      subtitle="Track people to contact for referrals, networking, and follow-ups."
+      subtitle="Lead pipeline, outreach drafting, and follow-up management in one workspace."
     >
       <div
         style={{
@@ -52,69 +180,46 @@ export default async function LeadsPage() {
         }}
       >
         <SummaryCard title="Total Leads" value={leads.length} />
-        <SummaryCard
-          title="New"
-          value={leads.filter((lead:any) => lead.status === "new").length}
-        />
-        <SummaryCard
-          title="Messaged"
-          value={leads.filter((lead:any) => lead.status === "messaged").length}
-        />
-        <SummaryCard
-          title="Replied"
-          value={leads.filter((lead:any) => lead.status === "replied").length}
-        />
+        <SummaryCard title="New" value={countByStatus("new")} />
+        <SummaryCard title="Messaged" value={countByStatus("messaged")} />
+        <SummaryCard title="Replied" value={countByStatus("replied")} />
+        <SummaryCard title="Referred" value={countByStatus("referred")} />
+        <SummaryCard title="Closed" value={countByStatus("closed")} />
       </div>
 
       <div
         style={{
           background: "#111827",
           border: "1px solid #1f2937",
-          borderRadius: 16,
+          borderRadius: 20,
           padding: 20,
           marginBottom: 24,
         }}
       >
-        <div
-          style={{
-            fontSize: 22,
-            fontWeight: 700,
-            marginBottom: 16,
-          }}
-        >
-          Add Lead Manually
-        </div>
+        <SectionTitle
+          title="Add Lead Manually"
+          subtitle="Quickly add people discovered outside the scraper."
+        />
 
         <form
           action="/api/leads/create"
           method="POST"
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
             gap: 12,
           }}
         >
           <input name="name" placeholder="Name" required style={inputStyle} />
-          <input
-            name="company"
-            placeholder="Company"
-            required
-            style={inputStyle}
-          />
+          <input name="company" placeholder="Company" required style={inputStyle} />
           <input name="role" placeholder="Role" style={inputStyle} />
-          <input
-            name="linkedinUrl"
-            placeholder="LinkedIn URL"
-            style={inputStyle}
-          />
-          <input
-            name="source"
-            placeholder="Source (LinkedIn / Manual / Google Search)"
-            style={inputStyle}
-          />
+          <input name="linkedinUrl" placeholder="LinkedIn URL" style={inputStyle} />
+          <input name="email" placeholder="Email" style={inputStyle} />
+          <input name="source" placeholder="Source" style={inputStyle} />
+
           <input
             name="priorityScore"
-            placeholder="Priority Score (0-100)"
+            placeholder="Priority (0-100)"
             type="number"
             min="0"
             max="100"
@@ -130,25 +235,14 @@ export default async function LeadsPage() {
             <option value="referred">Referred</option>
             <option value="closed">Closed</option>
           </select>
+          <input name="commonGround" placeholder="Common ground" style={inputStyle} />
           <input
-            name="commonGround"
-            placeholder="Common ground"
-            style={inputStyle}
+            name="notes"
+            placeholder="Notes"
+            style={{ ...inputStyle, gridColumn: "span 2" }}
           />
-          <input name="notes" placeholder="Notes" style={inputStyle} />
 
-          <button
-            type="submit"
-            style={{
-              background: "#2563eb",
-              color: "white",
-              border: "none",
-              borderRadius: 12,
-              padding: "12px 16px",
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
+          <button type="submit" style={primaryBtn}>
             Save Lead
           </button>
         </form>
@@ -156,220 +250,138 @@ export default async function LeadsPage() {
 
       <div
         style={{
-          background: "#111827",
-          border: "1px solid #1f2937",
-          borderRadius: 16,
-          overflow: "hidden",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          marginBottom: 16,
+          flexWrap: "wrap",
         }}
       >
+        <SectionTitle
+          title="Leads Workspace"
+          subtitle="Status-sorted cards with email editing, HTML draft editing, and quick actions."
+        />
+
         <div
           style={{
-            padding: 20,
-            borderBottom: "1px solid #1f2937",
-            fontSize: 22,
-            fontWeight: 700,
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+            alignItems: "center",
           }}
         >
-          Leads List
-        </div>
-
-        {leads.length === 0 ? (
-          <div
-            style={{
-              padding: 20,
-              color: "#9ca3af",
-            }}
-          >
-            No leads added yet.
-          </div>
-        ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table
+          {statusOrder.map((status) => (
+            <div
+              key={status}
               style={{
-                width: "100%",
-                borderCollapse: "collapse",
+                background: "#0f172a",
+                border: "1px solid #1f2937",
+                borderRadius: 999,
+                padding: "8px 12px",
+                color: "#cbd5e1",
+                fontSize: 12,
+                fontWeight: 700,
+                textTransform: "capitalize",
               }}
             >
-              <thead>
-                <tr style={{ background: "#0f172a", textAlign: "left" }}>
-                  <th style={thStyle}>Name</th>
-                  <th style={thStyle}>Company</th>
-                  <th style={thStyle}>Role</th>
-                  <th style={thStyle}>Source</th>
-                  <th style={thStyle}>Priority</th>
-                  <th style={thStyle}>Status</th>
-                  <th style={thStyle}>LinkedIn</th>
-                  <th style={thStyle}>Last Contacted</th>
-                  <th style={thStyle}>Next Follow-Up</th>
-                  <th style={thStyle}>Generated Note</th>
-                  <th style={thStyle}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leads.map((lead:any) => (
-                  <tr
-                    key={lead.id}
-                    style={{
-                      borderTop: "1px solid #1f2937",
-                      verticalAlign: "top",
-                    }}
-                  >
-                    <td style={tdStyle}>{lead.name}</td>
-                    <td style={tdStyle}>{lead.company}</td>
-                    <td style={tdStyle}>{lead.role || "-"}</td>
-                    <td style={tdStyle}>{lead.source || "-"}</td>
-                    <td style={tdStyle}>{lead.priorityScore}</td>
-                    <td style={tdStyle}>
-                      <StatusBadge status={lead.status} />
-                    </td>
-                    <td style={tdStyle}>
-                      {lead.linkedinUrl ? (
-                        <a
-                          href={lead.linkedinUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{
-                            color: "#60a5fa",
-                            textDecoration: "none",
-                          }}
-                        >
-                          Open
-                        </a>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                    <td style={tdStyle}>
-  {lead.lastContacted
-    ? new Date(lead.lastContacted).toLocaleDateString()
-    : "-"}
-</td>
-<td style={tdStyle}>
-  {lead.nextFollowUp
-    ? new Date(lead.nextFollowUp).toLocaleDateString()
-    : "-"}
-</td>
-                 <td style={{ ...tdStyle, minWidth: 400 }}>
-  <form
-    action="/api/leads/update-note"
-    method="POST"
-    style={{ display: "grid", gap: 8 }}
-  >
-    <input type="hidden" name="leadId" value={lead.id} />
-
-    <textarea
-      name="generatedNote"
-      defaultValue={lead.generatedNote || ""}
-      rows={6}
-      style={{
-        width: "100%",
-        background: "#0f172a",
-        color: "#e5e7eb",
-        border: "1px solid #1f2937",
-        borderRadius: 10,
-        padding: 10,
-        fontSize: 13,
-        lineHeight: 1.5,
-      }}
-    />
-
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-      <button type="submit" style={smallBtn("#059669")}>
-        Save
-      </button>
-<CopyButton text={lead.generatedNote || ""} />
-    </div>
-  </form>
-</td>
-
-<td style={tdStyle}>
-  <div style={{ display: "grid", gap: 8 }}>
-    <form action="/api/leads/generate-message" method="POST">
-      <input type="hidden" name="leadId" value={lead.id} />
-      <button style={smallBtn("#1d4ed8")}>Regenerate</button>
-    </form>
-
-    <form action="/api/leads/mark-messaged" method="POST">
-      <input type="hidden" name="leadId" value={lead.id} />
-      <button style={smallBtn("#7c3aed")}>Messaged</button>
-    </form>
-
-    <form action="/api/leads/mark-replied" method="POST">
-      <input type="hidden" name="leadId" value={lead.id} />
-      <button style={smallBtn("#059669")}>Replied</button>
-    </form>
-
-    <form action="/api/leads/mark-referred" method="POST">
-      <input type="hidden" name="leadId" value={lead.id} />
-      <button style={smallBtn("#ea580c")}>Referred</button>
-    </form>
-  </div>
-</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              {status.replaceAll("_", " ")} · {countByStatus(status)}
+            </div>
+          ))}
+        </div>
       </div>
+
+      {sortedLeads.length === 0 ? (
+        <div
+          style={{
+            background: "#111827",
+            border: "1px solid #1f2937",
+            borderRadius: 20,
+            padding: 28,
+            color: "#94a3b8",
+          }}
+        >
+          No leads added yet.
+        </div>
+      ) : (
+        <div style={{ display: "grid", gap: 18 }}>
+          {sortedLeads.map((lead: any) => (
+           
+               <LeadComposer lead={lead}/>
+
+              
+          ))}
+        </div>
+      )}
     </AppShell>
   );
 }
 
-function SummaryCard({
-  title,
-  value,
-}: {
-  title: string;
-  value: number;
-}) {
-  return (
-    <div
-      style={{
-        background: "#111827",
-        border: "1px solid #1f2937",
-        borderRadius: 16,
-        padding: 20,
-      }}
-    >
-      <div style={{ color: "#94a3b8", fontSize: 14, marginBottom: 10 }}>
-        {title}
-      </div>
-      <div style={{ fontSize: 28, fontWeight: 700 }}>{value}</div>
-    </div>
-  );
-}
-
 const inputStyle: React.CSSProperties = {
-  background: "#0f172a",
+  width: "100%",
+  background: "#020617",
   color: "#e5e7eb",
   border: "1px solid #1f2937",
-  borderRadius: 12,
+  borderRadius: 14,
   padding: "12px 14px",
   outline: "none",
-};
-
-const thStyle: React.CSSProperties = {
-  padding: "14px 16px",
-  color: "#94a3b8",
-  fontSize: 13,
-  fontWeight: 700,
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: "14px 16px",
-  color: "#e5e7eb",
   fontSize: 14,
 };
-function smallBtn(color: string): React.CSSProperties {
+
+const textareaStyle: React.CSSProperties = {
+  width: "100%",
+  background: "#020617",
+  color: "#e5e7eb",
+  border: "1px solid #1f2937",
+  borderRadius: 16,
+  padding: 14,
+  outline: "none",
+  fontSize: 14,
+  lineHeight: 1.6,
+  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+};
+
+const mutedBox: React.CSSProperties = {
+  background: "#020617",
+  border: "1px solid #1f2937",
+  borderRadius: 14,
+  padding: "12px 14px",
+  color: "#cbd5e1",
+  minHeight: 48,
+  lineHeight: 1.6,
+  wordBreak: "break-word",
+};
+
+const primaryBtn: React.CSSProperties = {
+  background: "#2563eb",
+  color: "white",
+  border: "none",
+  borderRadius: 12,
+  padding: "12px 16px",
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
+const successBtn: React.CSSProperties = {
+  background: "#059669",
+  color: "white",
+  border: "none",
+  borderRadius: 12,
+  padding: "12px 16px",
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
+function menuBtn(color: string): React.CSSProperties {
   return {
+    width: "100%",
     background: color,
     color: "white",
     border: "none",
-    borderRadius: 8,
-    padding: "8px 10px",
-    fontSize: 12,
-    fontWeight: 700,
+    borderRadius: 10,
+    padding: "10px 12px",
+    fontSize: 13,
+    fontWeight: 800,
     cursor: "pointer",
   };
 }

@@ -12,30 +12,41 @@ const buttonStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
+const secondaryButtonStyle: React.CSSProperties = {
+  ...buttonStyle,
+  background: "#059669",
+};
+
 export default function DashboardActions() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState("");
 
-  async function handleScrapeGoogleJobs() {
+  async function runAction(name: string, url: string) {
     try {
-      setLoading(true);
+      setLoading(name);
       setMessage("");
 
-      const res = await fetch("/api/scrapeJobs", {
+      const res = await fetch(url, {
         method: "GET",
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data?.error || "Failed to scrape jobs");
+        throw new Error(data?.error || `${name} failed`);
       }
 
-      setMessage(`Google scrape completed. Saved ${data.count ?? 0} jobs.`);
+      if (name === "Scrape Leads") {
+        setMessage(
+          `Lead scrape completed. Found ${data.found ?? 0}, saved ${data.saved ?? 0}, skipped ${data.skipped ?? 0}.`
+        );
+      } else {
+        setMessage(`${name} completed successfully.`);
+      }
     } catch (error: any) {
       setMessage(error.message || "Something went wrong");
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   }
 
@@ -55,11 +66,21 @@ export default function DashboardActions() {
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <button
-          style={buttonStyle}
-          onClick={handleScrapeGoogleJobs}
-          disabled={loading}
+          style={secondaryButtonStyle}
+          onClick={() => runAction("Scrape Leads", "/api/findEmployees")}
+          disabled={loading !== null}
         >
-          {loading ? "Scraping Google Jobs..." : "Scrape Google Jobs"}
+          {loading === "Scrape Leads" ? "Scraping Leads..." : "Scrape Leads"}
+        </button>
+
+        <button
+          style={buttonStyle}
+          onClick={() => runAction("Scrape Google Jobs", "/api/scrapeJobs")}
+          disabled={loading !== null}
+        >
+          {loading === "Scrape Google Jobs"
+            ? "Scraping Google Jobs..."
+            : "Scrape Google Jobs"}
         </button>
       </div>
 
@@ -78,4 +99,4 @@ export default function DashboardActions() {
       )}
     </div>
   );
-}   
+}
