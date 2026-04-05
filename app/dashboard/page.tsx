@@ -5,6 +5,8 @@ import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import { prisma } from "@/app/lib/prisma";
 import AppShell from "@/app/components/AppShell";
+import DashboardActions from "./DashboardActions";
+
 
 function Card({
   title,
@@ -143,6 +145,7 @@ lead.status !== "replied"
       title={`Welcome, ${profileName}`}
       subtitle="Your referral and job search workspace, centered around your profile and role targets."
     >
+      <DashboardActions />
       <div
         style={{
           display: "grid",
