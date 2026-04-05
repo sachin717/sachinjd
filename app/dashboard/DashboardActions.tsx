@@ -1,11 +1,10 @@
-// app/components/DashboardActions.tsx
 "use client";
 
 import { useState } from "react";
 
-const btnStyle: React.CSSProperties = {
+const buttonStyle: React.CSSProperties = {
   background: "#2563eb",
-  color: "#fff",
+  color: "#ffffff",
   border: "none",
   borderRadius: 10,
   padding: "12px 16px",
@@ -14,23 +13,29 @@ const btnStyle: React.CSSProperties = {
 };
 
 export default function DashboardActions() {
-  const [loading, setLoading] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
-  async function runAction(name: string, url: string, body?: any) {
+  async function handleScrapeGoogleJobs() {
     try {
-      setLoading(name);
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: body ? JSON.stringify(body) : undefined,
+      setLoading(true);
+      setMessage("");
+
+      const res = await fetch("/api/scrapeJobs", {
+        method: "GET",
       });
 
       const data = await res.json();
-      alert(`${name}: ${JSON.stringify(data)}`);
-    } catch (err) {
-      alert(`${name} failed`);
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to scrape jobs");
+      }
+
+      setMessage(`Google scrape completed. Saved ${data.count ?? 0} jobs.`);
+    } catch (error: any) {
+      setMessage(error.message || "Something went wrong");
     } finally {
-      setLoading(null);
+      setLoading(false);
     }
   }
 
@@ -48,48 +53,29 @@ export default function DashboardActions() {
         Quick Actions
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-          gap: 12,
-        }}
-      >
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <button
-          style={btnStyle}
-          onClick={() => runAction("Scrape Google Jobs", "/api/scrapeJobs", { platform: "google" })}
+          style={buttonStyle}
+          onClick={handleScrapeGoogleJobs}
+          disabled={loading}
         >
-          {loading === "Scrape Google Jobs" ? "Running..." : "Scrape Google Jobs"}
-        </button>
-
-        <button
-          style={btnStyle}
-          onClick={() => runAction("Scrape LinkedIn Jobs", "/api/scrapeJobs", { platform: "linkedin" })}
-        >
-          {loading === "Scrape LinkedIn Jobs" ? "Running..." : "Scrape LinkedIn Jobs"}
-        </button>
-
-        <button
-          style={btnStyle}
-          onClick={() => runAction("Scrape All Jobs", "/api/scrapeJobs", { platform: "all" })}
-        >
-          {loading === "Scrape All Jobs" ? "Running..." : "Scrape All Jobs"}
-        </button>
-
-        <button
-          style={btnStyle}
-          onClick={() => runAction("Find Employees", "/api/findEmployees")}
-        >
-          {loading === "Find Employees" ? "Running..." : "Find Employees"}
-        </button>
-
-        <button
-          style={btnStyle}
-          onClick={() => runAction("Generate Messages", "/api/generateMessages")}
-        >
-          {loading === "Generate Messages" ? "Running..." : "Generate Messages"}
+          {loading ? "Scraping Google Jobs..." : "Scrape Google Jobs"}
         </button>
       </div>
+
+      {message && (
+        <div
+          style={{
+            marginTop: 14,
+            color: "#cbd5e1",
+            background: "#1f2937",
+            borderRadius: 10,
+            padding: "10px 12px",
+          }}
+        >
+          {message}
+        </div>
+      )}
     </div>
   );
-}
+}   
